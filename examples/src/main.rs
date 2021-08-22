@@ -6,7 +6,8 @@ extern crate ndarray;
 extern crate ndarray_stats;
 
 use ndarray::prelude::*;
-use label_propagation::camlp::CAMLP;
+use label_propagation::CAMLP;
+use ndarray::Array;
 
 pub fn main() -> Result<(), Box<dyn Error>> {
     // origin matrix data
@@ -15,10 +16,15 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         vec![0.3, 0.0, 0.0],
         vec![0.0, 0.0, 0.0],
     ];
-    let x = array![0, 1];
-    let y = array![0, 1];
+    let row_len = data.len();
+    let col_len = data[0].len();
+    let flat_data = data.into_iter().flatten().collect::<Vec<_>>();
+    let graph = Array::from_shape_vec((row_len, col_len), flat_data).unwrap();
 
-    let mut model = CAMLP::new(data);
+    let x = array![0, 1];  // node index
+    let y = array![0, 1];  // label index
+
+    let mut model = CAMLP::new(graph);
     model.fit(&x, &y)?;
 
     let target = array![0, 1];
