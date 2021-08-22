@@ -8,13 +8,25 @@ use ndarray_stats::QuantileExt;
 
 pub struct CAMLP {
     graph: ArrayBase::<OwnedRepr<f32>, Ix2>,
+    iter: Option<usize>,
+    beta: Option<f32>,
     result: Option<ArrayBase::<OwnedRepr<f32>, Ix2>>,
 }
 
 
 impl CAMLP {
     pub fn new(graph: ArrayBase::<OwnedRepr<f32>, Ix2>) -> Self {
-        CAMLP { graph: graph, result: None }
+        CAMLP { graph: graph, result: None, beta: None, iter: None }
+    }
+
+    pub fn iter(mut self, num: usize) -> Self {
+        self.iter = Some(num);
+        self
+    }
+
+    pub fn beta(mut self, num: f32) -> Self {
+        self.beta = Some(num);
+        self
     }
 
     pub fn fit(&mut self, x: &ArrayBase::<OwnedRepr<usize>, Ix1>, y: &ArrayBase::<OwnedRepr<usize>, Ix1>) -> Result<(), Box<dyn Error>> {
@@ -22,7 +34,7 @@ impl CAMLP {
         let s = self.graph.shape()[0];
         let d = self.graph.sum_axis(Axis(1));
 
-        let z = Array::from_diag(&(1.0 / (1.0 + d * 0.1)));  // param beta=0.1
+        let z = Array::from_diag(&(1.0 / (1.0 + d * self.beta.unwrap_or(0.1))));
 
         let p = z.dot(&(0.1 * &self.graph));
         let mut b = Array::ones((s, c)) / (c as f32);
@@ -39,7 +51,7 @@ impl CAMLP {
 
         let mut f = z.dot(&b);
 
-        for _ in 0..2 {  // param iter=2
+        for _ in 0..self.iter.unwrap_or(100) {
             f = p.dot(&f) + &b;
         }
 

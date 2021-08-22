@@ -14,7 +14,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
     let x = array![0, 1];  // node index
     let y = array![0, 1];  // label index
 
-    let mut model = CAMLP::new(graph);
+    let mut model = CAMLP::new(graph).iter(2).beta(0.1);
     model.fit(&x, &y)?;
 
     let target = array![0, 1];
