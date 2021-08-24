@@ -1,12 +1,12 @@
 use std::error::Error;
-/// Local and Global Consistency (LGC) [Zhou+, NIPS'04]
-/// https://dennyzhou.github.io/papers/LLGC.pdf
 use std::result::Result;
 
 use ndarray::prelude::*;
 use ndarray::{Array, ArrayBase, Axis, OwnedRepr};
 use ndarray_stats::QuantileExt;
 
+/// Local and Global Consistency (LGC) [Zhou+, NIPS'04]
+/// https://dennyzhou.github.io/papers/LLGC.pdf
 pub struct LGC {
     graph: ArrayBase<OwnedRepr<f32>, Ix2>,
     iter: Option<usize>,
@@ -24,16 +24,21 @@ impl LGC {
         }
     }
 
+    /// Set the parameter for the iteration count
     pub fn iter(mut self, num: usize) -> Self {
         self.iter = Some(num);
         self
     }
 
+    /// Set the parameter for the alpha
     pub fn alpha(mut self, num: f32) -> Self {
         self.alpha = Some(num);
         self
     }
 
+    /// Fit the model to the data.
+    /// x: index of node for label
+    /// y: label index
     pub fn fit(
         &mut self,
         x: &ArrayBase<OwnedRepr<usize>, Ix1>,
@@ -70,6 +75,8 @@ impl LGC {
         Ok(())
     }
 
+    /// predict label score.
+    /// target_node: node index
     pub fn predict_proba(
         &mut self,
         target_node: &ArrayBase<OwnedRepr<usize>, Ix1>,

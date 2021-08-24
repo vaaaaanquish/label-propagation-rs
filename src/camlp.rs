@@ -1,12 +1,12 @@
 use std::error::Error;
-/// Core model in Confidence-Aware Modulated Label Propagation (CAMLP) [Yamaguchi+, SDM'16]
-/// https://epubs.siam.org/doi/pdf/10.1137/1.9781611974348.58
 use std::result::Result;
 
 use ndarray::prelude::*;
 use ndarray::{Array, ArrayBase, Axis, OwnedRepr};
 use ndarray_stats::QuantileExt;
 
+/// Core model in Confidence-Aware Modulated Label Propagation (CAMLP) [Yamaguchi+, SDM'16]
+/// https://epubs.siam.org/doi/pdf/10.1137/1.9781611974348.58
 pub struct CAMLP {
     graph: ArrayBase<OwnedRepr<f32>, Ix2>,
     iter: Option<usize>,
@@ -24,16 +24,21 @@ impl CAMLP {
         }
     }
 
+    /// Set the parameter for the iteration count
     pub fn iter(mut self, num: usize) -> Self {
         self.iter = Some(num);
         self
     }
 
+    /// Set the parameter for the beta
     pub fn beta(mut self, num: f32) -> Self {
         self.beta = Some(num);
         self
     }
 
+    /// Fit the model to the data.
+    /// x: index of node for label
+    /// y: label index
     pub fn fit(
         &mut self,
         x: &ArrayBase<OwnedRepr<usize>, Ix1>,
@@ -69,6 +74,8 @@ impl CAMLP {
         Ok(())
     }
 
+    /// predict label score.
+    /// target_node: node index
     pub fn predict_proba(
         &mut self,
         target_node: &ArrayBase<OwnedRepr<usize>, Ix1>,
