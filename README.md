@@ -37,8 +37,8 @@ pub fn main() -> Result<(), Box<dyn Error>> {
     let y = array![0, 1];
 
     // make model
-    let mut model = CAMLP::new(graph).iter(2).beta(0.1);
-    // let mut model = LGC::new(graph).iter(2).alpha(0.99);
+    let mut model = CAMLP::new(graph).iter(30).beta(0.1);
+    // let mut model = LGC::new(graph).iter(30).alpha(0.99);
 
     model.fit(&x, &y)?;
 

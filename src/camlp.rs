@@ -1,23 +1,27 @@
+use std::error::Error;
 /// Core model in Confidence-Aware Modulated Label Propagation (CAMLP) [Yamaguchi+, SDM'16]
 /// https://epubs.siam.org/doi/pdf/10.1137/1.9781611974348.58
 use std::result::Result;
-use std::error::Error;
 
-use ndarray::{Array, ArrayBase, Axis, OwnedRepr};
 use ndarray::prelude::*;
+use ndarray::{Array, ArrayBase, Axis, OwnedRepr};
 use ndarray_stats::QuantileExt;
 
 pub struct CAMLP {
-    graph: ArrayBase::<OwnedRepr<f32>, Ix2>,
+    graph: ArrayBase<OwnedRepr<f32>, Ix2>,
     iter: Option<usize>,
     beta: Option<f32>,
-    result: Option<ArrayBase::<OwnedRepr<f32>, Ix2>>,
+    result: Option<ArrayBase<OwnedRepr<f32>, Ix2>>,
 }
 
-
 impl CAMLP {
-    pub fn new(graph: ArrayBase::<OwnedRepr<f32>, Ix2>) -> Self {
-        CAMLP { graph: graph, result: None, beta: None, iter: None }
+    pub fn new(graph: ArrayBase<OwnedRepr<f32>, Ix2>) -> Self {
+        CAMLP {
+            graph: graph,
+            result: None,
+            beta: None,
+            iter: None,
+        }
     }
 
     pub fn iter(mut self, num: usize) -> Self {
@@ -30,7 +34,11 @@ impl CAMLP {
         self
     }
 
-    pub fn fit(&mut self, x: &ArrayBase::<OwnedRepr<usize>, Ix1>, y: &ArrayBase::<OwnedRepr<usize>, Ix1>) -> Result<(), Box<dyn Error>> {
+    pub fn fit(
+        &mut self,
+        x: &ArrayBase<OwnedRepr<usize>, Ix1>,
+        y: &ArrayBase<OwnedRepr<usize>, Ix1>,
+    ) -> Result<(), Box<dyn Error>> {
         let c = *x.max()? + 1;
         let s = self.graph.shape()[0];
         let d = self.graph.sum_axis(Axis(1));
@@ -61,10 +69,18 @@ impl CAMLP {
         Ok(())
     }
 
-    pub fn predict_proba(&mut self, target_node: &ArrayBase::<OwnedRepr<usize>, Ix1>) -> ArrayBase::<OwnedRepr<f32>, Ix2> {
-        let mut result = Array::zeros((target_node.shape()[0], self.result.as_mut().unwrap().shape()[1]));
+    pub fn predict_proba(
+        &mut self,
+        target_node: &ArrayBase<OwnedRepr<usize>, Ix1>,
+    ) -> ArrayBase<OwnedRepr<f32>, Ix2> {
+        let mut result = Array::zeros((
+            target_node.shape()[0],
+            self.result.as_mut().unwrap().shape()[1],
+        ));
         for i in target_node {
-            result.slice_mut(s![*i, ..]).assign(&self.result.as_mut().unwrap().slice_mut(s![*i, ..]));
+            result
+                .slice_mut(s![*i, ..])
+                .assign(&self.result.as_mut().unwrap().slice_mut(s![*i, ..]));
         }
         result
     }

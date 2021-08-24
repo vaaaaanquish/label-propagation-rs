@@ -1,22 +1,27 @@
+use std::error::Error;
 /// Local and Global Consistency (LGC) [Zhou+, NIPS'04]
 /// https://dennyzhou.github.io/papers/LLGC.pdf
 use std::result::Result;
-use std::error::Error;
 
-use ndarray::{Array, ArrayBase, Axis, OwnedRepr};
 use ndarray::prelude::*;
+use ndarray::{Array, ArrayBase, Axis, OwnedRepr};
 use ndarray_stats::QuantileExt;
 
 pub struct LGC {
-    graph: ArrayBase::<OwnedRepr<f32>, Ix2>,
+    graph: ArrayBase<OwnedRepr<f32>, Ix2>,
     iter: Option<usize>,
     alpha: Option<f32>,
-    result: Option<ArrayBase::<OwnedRepr<f32>, Ix2>>,
+    result: Option<ArrayBase<OwnedRepr<f32>, Ix2>>,
 }
 
 impl LGC {
-    pub fn new(graph: ArrayBase::<OwnedRepr<f32>, Ix2>) -> Self {
-        LGC { graph: graph, result: None, iter: None, alpha: None }
+    pub fn new(graph: ArrayBase<OwnedRepr<f32>, Ix2>) -> Self {
+        LGC {
+            graph: graph,
+            result: None,
+            iter: None,
+            alpha: None,
+        }
     }
 
     pub fn iter(mut self, num: usize) -> Self {
@@ -29,15 +34,22 @@ impl LGC {
         self
     }
 
-    pub fn fit(&mut self, x: &ArrayBase::<OwnedRepr<usize>, Ix1>, y: &ArrayBase::<OwnedRepr<usize>, Ix1>) -> Result<(), Box<dyn Error>> {
+    pub fn fit(
+        &mut self,
+        x: &ArrayBase<OwnedRepr<usize>, Ix1>,
+        y: &ArrayBase<OwnedRepr<usize>, Ix1>,
+    ) -> Result<(), Box<dyn Error>> {
         let c = *x.max()? + 1;
         let s = self.graph.shape()[0];
         let d = self.graph.sum_axis(Axis(0));
 
         // Avoid division by 0
-        let d_t = Array::from_iter(d.iter().filter_map(|&b| if b==0. {Some(1.)} else {Some(b)}));
+        let d_t = Array::from_iter(
+            d.iter()
+                .filter_map(|&b| if b == 0. { Some(1.) } else { Some(b) }),
+        );
 
-        let d_diag = Array::from_diag(&(1.0 / d_t ));
+        let d_diag = Array::from_diag(&(1.0 / d_t));
         let d_sqrt = d_diag.mapv(f32::sqrt);
         let p = self.alpha.unwrap_or(0.99) * d_sqrt.dot(&self.graph).dot(&d_sqrt);
 
@@ -58,11 +70,18 @@ impl LGC {
         Ok(())
     }
 
-
-    pub fn predict_proba(&mut self, target_node: &ArrayBase::<OwnedRepr<usize>, Ix1>) -> ArrayBase::<OwnedRepr<f32>, Ix2> {
-        let mut result = Array::zeros((target_node.shape()[0], self.result.as_mut().unwrap().shape()[1]));
+    pub fn predict_proba(
+        &mut self,
+        target_node: &ArrayBase<OwnedRepr<usize>, Ix1>,
+    ) -> ArrayBase<OwnedRepr<f32>, Ix2> {
+        let mut result = Array::zeros((
+            target_node.shape()[0],
+            self.result.as_mut().unwrap().shape()[1],
+        ));
         for i in target_node {
-            result.slice_mut(s![*i, ..]).assign(&self.result.as_mut().unwrap().slice_mut(s![*i, ..]));
+            result
+                .slice_mut(s![*i, ..])
+                .assign(&self.result.as_mut().unwrap().slice_mut(s![*i, ..]));
         }
         result
     }
