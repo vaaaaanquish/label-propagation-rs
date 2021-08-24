@@ -1,5 +1,5 @@
-/// Core model in Confidence-Aware Modulated Label Propagation (CAMLP) [Yamaguchi+, SDM'16]
-/// https://epubs.siam.org/doi/pdf/10.1137/1.9781611974348.58
+/// Local and Global Consistency (LGC) [Zhou+, NIPS'04]
+/// https://dennyzhou.github.io/papers/LLGC.pdf
 use std::result::Result;
 use std::error::Error;
 
@@ -7,17 +7,16 @@ use ndarray::{Array, ArrayBase, Axis, OwnedRepr};
 use ndarray::prelude::*;
 use ndarray_stats::QuantileExt;
 
-pub struct CAMLP {
+pub struct LGC {
     graph: ArrayBase::<OwnedRepr<f32>, Ix2>,
     iter: Option<usize>,
-    beta: Option<f32>,
+    alpha: Option<f32>,
     result: Option<ArrayBase::<OwnedRepr<f32>, Ix2>>,
 }
 
-
-impl CAMLP {
+impl LGC {
     pub fn new(graph: ArrayBase::<OwnedRepr<f32>, Ix2>) -> Self {
-        CAMLP { graph: graph, result: None, beta: None, iter: None }
+        LGC { graph: graph, result: None, iter: None, alpha: None }
     }
 
     pub fn iter(mut self, num: usize) -> Self {
@@ -25,41 +24,40 @@ impl CAMLP {
         self
     }
 
-    pub fn beta(mut self, num: f32) -> Self {
-        self.beta = Some(num);
+    pub fn alpha(mut self, num: f32) -> Self {
+        self.alpha = Some(num);
         self
     }
 
     pub fn fit(&mut self, x: &ArrayBase::<OwnedRepr<usize>, Ix1>, y: &ArrayBase::<OwnedRepr<usize>, Ix1>) -> Result<(), Box<dyn Error>> {
         let c = *x.max()? + 1;
         let s = self.graph.shape()[0];
-        let d = self.graph.sum_axis(Axis(1));
+        let d = self.graph.sum_axis(Axis(0));
 
-        let z = Array::from_diag(&(1.0 / (1.0 + d * self.beta.unwrap_or(0.1))));
+        // Avoid division by 0
+        let d_t = Array::from_iter(d.iter().filter_map(|&b| if b==0. {Some(1.)} else {Some(b)}));
 
-        let p = z.dot(&(0.1 * &self.graph));
-        let h = Array::eye(c);
-        let mut b = Array::ones((s, c)) / (c as f32);
+        let d_diag = Array::from_diag(&(1.0 / d_t ));
+        let d_sqrt = d_diag.mapv(f32::sqrt);
+        let p = self.alpha.unwrap_or(0.99) * d_sqrt.dot(&self.graph).dot(&d_sqrt);
 
-        // numpy -> b[[0,1]] = 0.
-        for x_i in x {
-            b.slice_mut(s![*x_i, ..]).fill(0.);
-        }
+        let mut b = Array::zeros((s, c)) / (c as f32);
 
         // numpy -> b[[0,1], [0,1]] = 1.
         for (x_i, y_i) in x.iter().zip(y.iter()) {
             b.slice_mut(s![*x_i, *y_i]).fill(1.);
         }
 
-        let mut f = z.dot(&b);
+        let mut f = (1. - self.alpha.unwrap_or(0.99)) * &b;
 
         for _ in 0..self.iter.unwrap_or(30) {
-            f = p.dot(&f).dot(&h) + &b;
+            f = p.dot(&f) + &b;
         }
 
         self.result = Some(f);
         Ok(())
     }
+
 
     pub fn predict_proba(&mut self, target_node: &ArrayBase::<OwnedRepr<usize>, Ix1>) -> ArrayBase::<OwnedRepr<f32>, Ix2> {
         let mut result = Array::zeros((target_node.shape()[0], self.result.as_mut().unwrap().shape()[1]));
