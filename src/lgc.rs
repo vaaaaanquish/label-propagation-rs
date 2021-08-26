@@ -44,7 +44,7 @@ impl LGC {
         x: &ArrayBase<OwnedRepr<usize>, Ix1>,
         y: &ArrayBase<OwnedRepr<usize>, Ix1>,
     ) -> Result<(), Box<dyn Error>> {
-        let c = *x.max()? + 1;
+        let c = *y.max()? + 1;
         let s = self.graph.shape()[0];
         let d = self.graph.sum_axis(Axis(0));
 
@@ -85,10 +85,10 @@ impl LGC {
             target_node.shape()[0],
             self.result.as_mut().unwrap().shape()[1],
         ));
-        for i in target_node {
+        for (i, n) in target_node.iter().enumerate() {
             result
-                .slice_mut(s![*i, ..])
-                .assign(&self.result.as_mut().unwrap().slice_mut(s![*i, ..]));
+                .slice_mut(s![i, ..])
+                .assign(&self.result.as_mut().unwrap().slice_mut(s![*n, ..]));
         }
         result
     }
